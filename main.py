@@ -54,31 +54,40 @@ def login(mysql_server, port, user, password):
     return err, t2 - t1
 
 
-def brute_force(thread_index, servers, port, credentials):
+def run_test(thread_index, servers, port):
   successful_logins = {}
-  for credential in credentials:
-    status = ['']
-    for server in servers:
-      status = login(server, port, credential[0], credential[1])
-      if status[0] == True:
-        successful_logins[server] = [credential[0], credential[1]]
-        with lock:
-          display(
-              ' ',
-              f"Thread {thread_index+1}:{status[1]:.2f}s -> {Fore.CYAN}{credential[0]}{Fore.RESET}:{Fore.GREEN}{credential[1]}{Fore.RESET}@{Back.MAGENTA}{server}{Back.RESET} => {Back.MAGENTA}{Fore.BLUE}Authorized{Fore.RESET}{Back.RESET}"
-          )
-      elif status[0] == False:
-        with lock:
-          display(
-              ' ',
-              f"Thread {thread_index+1}:{status[1]:.2f}s -> {Fore.CYAN}{credential[0]}{Fore.RESET}:{Fore.GREEN}{credential[1]}{Fore.RESET}@{Back.MAGENTA}{server}{Back.RESET} => {Back.RED}{Fore.YELLOW}Access Denied{Fore.RESET}{Back.RESET}"
-          )
-      else:
-        with lock:
-          display(
-              ' ',
-              f"Thread {thread_index+1}:{status[1]:.2f}s -> {Fore.CYAN}{credential[0]}{Fore.RESET}:{Fore.GREEN}{credential[1]}{Fore.RESET}@{Back.MAGENTA}{server}{Back.RESET} => {Fore.YELLOW}Error Occured : {Back.RED}{status[0]}{Fore.RESET}{Back.RESET}"
-          )
+  user = "SEU_USER"
+  password = "SUA_SENHA"
+
+  try:
+    while True:
+      for server in servers:
+        status = login(server, port, user, password)
+
+        if status[0] == True:
+          successful_logins[server] = [user, password]
+          with lock:
+            display(
+                ' ',
+                f"Thread {thread_index+1}:{status[1]:.2f}s -> {Fore.CYAN}{user}{Fore.RESET}:{Fore.GREEN}{password}{Fore.RESET}@{Back.MAGENTA}{server}{Back.RESET} => {Back.MAGENTA}{Fore.BLUE}Authorized{Fore.RESET}{Back.RESET}"
+            )
+        elif status[0] == False:
+          with lock:
+            display(
+                ' ',
+                f"Thread {thread_index+1}:{status[1]:.2f}s -> {Fore.CYAN}{user}{Fore.RESET}:{Fore.GREEN}{password}{Fore.RESET}@{Back.MAGENTA}{server}{Back.RESET} => {Back.RED}{Fore.YELLOW}Access Denied{Fore.RESET}{Back.RESET}"
+            )
+        else:
+          with lock:
+            display(
+                ' ',
+                f"Thread {thread_index+1}:{status[1]:.2f}s -> {Fore.CYAN}{user}{Fore.RESET}:{Fore.GREEN}{password}{Fore.RESET}@{Back.MAGENTA}{server}{Back.RESET} => {Fore.YELLOW}Error Occured : {Back.RED}{status[0]}{Fore.RESET}{Back.RESET}"
+            )
+
+  except KeyboardInterrupt:
+    with lock:
+      display(' ', f"Thread {thread_index+1} encerrada (Ctrl+C).")
+
   return successful_logins
 
 
@@ -101,8 +110,8 @@ def main(servers, port, credentials):
   ]
   for index, server_division in enumerate(server_divisions):
     threads.append(
-        pool.apply_async(brute_force,
-                         (index, server_division, port, credentials)))
+        pool.apply_async(run_test,
+                         (index, server_division, port)))
   for thread in threads:
     successful_logins.update(thread.get())
   pool.close()
