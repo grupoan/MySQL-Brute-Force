@@ -91,7 +91,7 @@ def run_test(thread_index, servers, port):
   return successful_logins
 
 
-def main(servers, port, credentials):
+def main(servers, port):
   successful_logins = {}
   thread_count = cpu_count()
   pool = Pool(thread_count)
@@ -100,7 +100,7 @@ def main(servers, port, credentials):
       f"Starting {Back.MAGENTA}{thread_count} Brute Force Threads{Back.RESET}")
   display(
       ':',
-      f"Credentials / Threads = {Back.MAGENTA}{len(credentials)//thread_count}{Back.RESET}"
+      f"Credentials / Threads = {Back.MAGENTA}{thread_count}{Back.RESET}"
   )
   threads = []
   total_servers = len(servers)
@@ -125,12 +125,6 @@ if __name__ == "__main__":
       ('-s', "--server", "server", "Target MySQL Server (seperated by ',')"),
       ('-p', "--port", "port",
        f"Port of Target MySQL Server (Default={port})"),
-      ('-u', "--users", "users",
-       "Target Users (seperated by ',') or File containing List of Users"),
-      ('-P', "--password", "password",
-       "Passwords (seperated by ',') or File containing List of Passwords"),
-      ('-c', "--credentials", "credentials",
-       "Name of File containing Credentials in format ({user}:{password})"),
       ('-i', "--ignore-errors", "ignore_errors",
        f"Ignore Errors (True/False, Default={ignore_errors})"),
       ('-w', "--write", "write",
@@ -156,77 +150,14 @@ if __name__ == "__main__":
     arguments.port = port
   else:
     arguments.port = int(arguments.port)
-  if not arguments.credentials:
-    if not arguments.users:
-      display('-', f"Please specify {Back.YELLOW}Target Users{Back.RESET}")
-      exit(0)
-    else:
-      try:
-        with open(arguments.users, 'r') as file:
-          arguments.users = [
-              user for user in file.read().split('\n') if user != ''
-          ]
-      except FileNotFoundError:
-        arguments.users = arguments.users.split(',')
-      except:
-        display(
-            '-',
-            f"Error while Reading File {Back.YELLOW}{arguments.users}{Back.RESET}"
-        )
-        exit(0)
-      display(
-          ':',
-          f"Users Loaded = {Back.MAGENTA}{len(arguments.users)}{Back.RESET}")
-    if not arguments.password:
-      display('-', f"Please specify {Back.YELLOW}Passwords{Back.RESET}")
-      exit(0)
-    else:
-      try:
-        with open(arguments.password, 'r') as file:
-          arguments.password = [
-              password for password in file.read().split('\n')
-              if password != ''
-          ]
-      except FileNotFoundError:
-        arguments.password = arguments.password.split(',')
-      except:
-        display(
-            '-',
-            f"Error while Reading File {Back.YELLOW}{arguments.password}{Back.RESET}"
-        )
-        exit(0)
-      display(
-          ':',
-          f"Passwords Loaded = {Back.MAGENTA}{len(arguments.password)}{Back.RESET}"
-      )
-    arguments.credentials = []
-    for user in arguments.users:
-      for password in arguments.password:
-        arguments.credentials.append([user, password])
-  else:
-    try:
-      with open(arguments.credentials, 'r') as file:
-        arguments.credentials = [[
-            credential.split(':')[0], ':'.join(credential.split(':')[1:])
-        ] for credential in file.read().split('\n')
-                                 if len(credential.split(':')) > 1]
-    except:
-      display(
-          '-',
-          f"Error while Reading File {Back.YELLOW}{arguments.credentials}{Back.RESET}"
-      )
-      exit(0)
+  
   if arguments.ignore_errors == False:
     ignore_errors = False
   if not arguments.write:
     arguments.write = f"{date.today()} {strftime('%H_%M_%S', localtime())}.csv"
-  display(
-      '+',
-      f"Total Credentials = {Back.MAGENTA}{len(arguments.credentials)}{Back.RESET}"
-  )
+  
   t1 = time()
-  successful_logins = main(arguments.server, arguments.port,
-                           arguments.credentials)
+  successful_logins = main(arguments.server, arguments.port)
   t2 = time()
   display(
       ':',
@@ -237,19 +168,5 @@ if __name__ == "__main__":
       f"Time Taken        = {Back.MAGENTA}{t2-t1:.2f} seconds{Back.RESET}")
   display(
       ':',
-      f"Rate              = {Back.MAGENTA}{len(arguments.credentials)/(t2-t1):.2f} logins / seconds{Back.RESET}"
-  )
-  display(
-      ':',
-      f"Dumping Successful Logins to File {Back.MAGENTA}{arguments.write}{Back.RESET}"
-  )
-  with open(arguments.write, 'w') as file:
-    file.write(f"Server,User,Password\n")
-    file.write('\n'.join([
-        f"{server},{user},{password}"
-        for server, (user, password) in successful_logins.items()
-    ]))
-  display(
-      '+',
-      f"Dumped Successful Logins to File {Back.MAGENTA}{arguments.write}{Back.RESET}"
+      f"Rate              = {Back.MAGENTA}{(t2-t1):.2f} logins / seconds{Back.RESET}"
   )
